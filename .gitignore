@@ -1,0 +1,8 @@
+# Local secrets / generated files
+**/.clasp.json
+**/.clasprc.json
+**/.env
+**/.env.*
+!.env.example
+**/node_modules/
+**/.shopify/
