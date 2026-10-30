@@ -1,7 +1,7 @@
 # Shopify booking project
 
-- `theme/` — untouched baseline copied from the supplied Trade export.
-- `backend/apps-script/` — initial Google Apps Script source/config location.
+- Shopify theme source is at the repository root so Shopify's GitHub theme integration can recognize the standard theme structure.
+- `backend/apps-script/` — Google Apps Script source and version-controlled booking configuration.
 - `outputs/` — audit and build plan.
 
-Theme edits and backend implementation will be staged in commits. Never commit OAuth credentials, webhook secrets, `.clasprc.json`, `.clasp.json`, store tokens, or deployment secrets.
+Never commit OAuth credentials, webhook secrets, `.clasprc.json`, `.clasp.json`, store tokens, or deployment secrets. Shopify's theme integration should connect only to this repository's `main` branch and the intended development theme. Backend and output folders are separate from Shopify theme files.

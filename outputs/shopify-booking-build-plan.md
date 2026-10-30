@@ -79,3 +79,7 @@ Local baseline and configuration are ready. The integration prototype is not com
 - Added a read-only Apps Script probe in `backend/apps-script/Code.gs`; it reports request method, query key names, presence of proxy fields, and body length/type without echoing customer data or performing mutations.
 - Added `sync-config.mjs`, which compiles the version-controlled `booking-config.json` into Apps Script source (`BookingConfig.gs`). This preserves JSON as the single editable policy source while keeping the runtime format compatible with Apps Script.
 - The live connectivity gate still needs the probe deployed as a Google Apps Script web app and an App Proxy configured in the Shopify development app. Do not implement booking writes until GET/POST, redirect handling, and signature validation are confirmed.
+
+## Theme repository layout adjustment
+
+Following the merchant's decision to connect this new theme to the active Shopify theme (with the storefront password page enabled), the Trade theme's standard directories were moved from `theme/` to the repository root. This lets Shopify's GitHub integration recognize the default theme structure on `main`; backend source remains under `backend/apps-script/`. Connect Shopify to the intended theme and `main` branch. Confirm the theme card is the new theme and password protection remains enabled before allowing sync. Do not publish or switch themes; the merchant chose to use the already-active theme.
