@@ -73,3 +73,9 @@ Official current references:
 ### Step 2 status
 
 Local baseline and configuration are ready. The integration prototype is not complete: this environment currently has no Shopify CLI, GitHub CLI, or clasp command, and no GitHub remote is configured. We can still use this local Git repository and connect it to GitHub when a repository URL and authenticated access are available. Before implementing booking writes, we must deploy a minimal Apps Script web app and verify the real App Proxy request/response path and request authentication against the development store. Shopify's documentation notes that App Proxy requests forward the method and body, while Apps Script Content Service responses redirect to a one-time `script.googleusercontent.com` URL; this is the compatibility point the prototype needs to prove.
+
+### Step 2 progress (30 October 2026)
+
+- Added a read-only Apps Script probe in `backend/apps-script/Code.gs`; it reports request method, query key names, presence of proxy fields, and body length/type without echoing customer data or performing mutations.
+- Added `sync-config.mjs`, which compiles the version-controlled `booking-config.json` into Apps Script source (`BookingConfig.gs`). This preserves JSON as the single editable policy source while keeping the runtime format compatible with Apps Script.
+- The live connectivity gate still needs the probe deployed as a Google Apps Script web app and an App Proxy configured in the Shopify development app. Do not implement booking writes until GET/POST, redirect handling, and signature validation are confirmed.

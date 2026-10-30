@@ -1,0 +1,64 @@
+/** Generated from booking-config.json by sync-config.mjs. Do not edit by hand. */
+var BOOKING_CONFIG = {
+  "schema_version": 1,
+  "timezone": "Europe/Dublin",
+  "availability": {
+    "working_days": [
+      "monday",
+      "tuesday",
+      "wednesday",
+      "thursday",
+      "friday"
+    ],
+    "open_time": "09:00",
+    "close_time": "17:00",
+    "excluded_holiday_region": "IE",
+    "minimum_notice_hours": 24,
+    "advance_booking_days": 30,
+    "calendar_view_days": 7
+  },
+  "holds": {
+    "reservation_minutes": 15,
+    "checkout_grace_minutes": 15
+  },
+  "booking_types": {
+    "video_chat": {
+      "duration_minutes": 60,
+      "buffer_minutes": 30
+    },
+    "phone_call": {
+      "duration_minutes": 60,
+      "buffer_minutes": 30
+    },
+    "remote_service": {
+      "duration_minutes": 120,
+      "buffer_minutes": 30
+    },
+    "site_visit": {
+      "duration_minutes": 240,
+      "buffer_minutes": 0,
+      "max_per_day": 2,
+      "allowed_start_times": [
+        "08:00",
+        "08:30",
+        "14:30",
+        "15:00"
+      ],
+      "service_area": [
+        "IE",
+        "XI"
+      ],
+      "priced_by_variant": true
+    }
+  },
+  "orders": {
+    "max_booking_lines": 1
+  },
+  "notifications": {
+    "shopify_new_order_email": true,
+    "booking_confirmed_email_after_calendar_event": [
+      "customer",
+      "admin"
+    ]
+  }
+};
