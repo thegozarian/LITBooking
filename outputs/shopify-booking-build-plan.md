@@ -49,3 +49,27 @@ This gives a central, editable configuration file now and leaves a clean path to
 - Access to the Shopify development store/theme and permission to create/connect the custom app / Theme App Extension.
 - Google account/calendar access when we reach calendar connection; Zoom authorization when we reach meeting creation.
 - Product IDs, variant prices and product metafield configuration can be captured when setting up the four products; they are not needed to complete this audit.
+
+## Step 2 update: source control and deployment route
+
+The supplied theme is now copied into the project at `theme/` and committed as an untouched baseline. The repository also contains `backend/apps-script/booking-config.json`, the initial Apps Script manifest, and a secrets ignore list. The booking settings JSON is backend-side and will be the authoritative policy source.
+
+### GitHub and Shopify deployment
+
+A GitHub repository is a good home for the project source. Shopify's GitHub integration can connect a GitHub-hosted theme to a Shopify store; Shopify CLI can also push local theme files to an unpublished theme. The GitHub theme connection applies to theme files, not to a custom app server or Apps Script deployment.
+
+- Theme: Shopify GitHub integration, or Shopify CLI `theme push` to an unpublished theme. No production publish step without explicit approval.
+- Shopify app configuration / Theme App Extension: Shopify CLI app workflow and `shopify app deploy`; this releases app configuration and extensions, not backend hosting.
+- Google Apps Script: `clasp` can upload local source, create versions, and deploy the web app; GitHub Actions can automate it after credentials are stored as secrets.
+
+Official current references:
+- [Shopify GitHub-hosted themes and theme upload options](https://help.shopify.com/en/manual/online-store/themes/adding-themes)
+- [Shopify CLI theme push](https://shopify.dev/docs/api/shopify-cli/theme/theme-push)
+- [Shopify App Proxy](https://shopify.dev/docs/apps/build/online-store/app-proxies)
+- [Shopify Flow Send HTTP request](https://help.shopify.com/en/manual/shopify-flow/reference/actions/send-http-request)
+- [Google clasp and Apps Script deployment](https://developers.google.com/apps-script/guides/clasp)
+- [Apps Script Content Service redirects](https://developers.google.com/apps-script/guides/content)
+
+### Step 2 status
+
+Local baseline and configuration are ready. The integration prototype is not complete: this environment currently has no Shopify CLI, GitHub CLI, or clasp command, and no GitHub remote is configured. We can still use this local Git repository and connect it to GitHub when a repository URL and authenticated access are available. Before implementing booking writes, we must deploy a minimal Apps Script web app and verify the real App Proxy request/response path and request authentication against the development store. Shopify's documentation notes that App Proxy requests forward the method and body, while Apps Script Content Service responses redirect to a one-time `script.googleusercontent.com` URL; this is the compatibility point the prototype needs to prove.
