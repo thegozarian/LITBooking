@@ -225,13 +225,13 @@
         const button = document.createElement("button");
         button.type = "button";
         button.textContent = String(Number(day.slice(-2)));
-        button.dataset.unavailable = String(day < today || day > horizonEnd || monthStart(day) !== shownMonth);
+        button.dataset.unavailable = String(day < today || day > horizonEnd);
         button.disabled = button.dataset.unavailable === "true";
         button.className = "lit-booking__date";
         button.setAttribute("aria-label", formatDay(day, {weekday:"long", day:"numeric", month:"long", year:"numeric"}));
         button.setAttribute("aria-pressed", String(day === selectedDay));
         if (day === today) button.setAttribute("aria-current", "date");
-        button.addEventListener("click", () => { if (!busy) { selectedDay = day; draft = null; renderMonth(); loadDay(); } });
+        button.addEventListener("click", () => { if (!busy) { selectedDay = day; shownMonth = monthStart(day); draft = null; renderMonth(); loadDay(); } });
         grid.append(button);
       }
       updateControls();
