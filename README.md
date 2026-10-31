@@ -8,7 +8,7 @@ Shopify theme and booking integration for LIT appointments.
 2. The theme extension shows available slots for the next four weeks. Selecting a slot creates a 15-minute DynamoDB hold.
 3. The selected date/time and private hold credentials are submitted as Shopify line item properties with Shopify accelerated checkout. Booking products do not show the normal Add to cart button.
 4. Shopify's `orders/create` webhook is HMAC-verified by the existing Lambda. The Lambda confirms the DynamoDB slot lock and creates a Google Calendar event with a stable event ID, so webhook retries do not create duplicates.
-5. Shopify's normal order notifications continue for the customer and store. Google Calendar sends the customer an event invitation when an email address is available. The selected appointment time is stored as the public `Booking start` line item property for use in those emails.
+5. Shopify's standard order notifications continue for the customer and store. Google Calendar sends the customer an event invitation when an email address is available. The selected appointment time is stored as the public `Booking start` line item property and can be added to both Shopify email templates.
 
 The booking calendar is `Europe/Dublin`. Shopify app version `lit-booking-7` and the AWS stack `lit-booking-dev` contain the current implementation. The calendar extension source is in `shopify-app/lit-booking/scripts/availability.js`; its storefront asset is minified at `shopify-app/lit-booking/extensions/booking/assets/availability.js`.
 
