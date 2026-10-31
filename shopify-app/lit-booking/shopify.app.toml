@@ -4,7 +4,7 @@ client_id = "820bd32d51a4a64505dc3befae60cf2a"
 name = "LIT Booking"
 application_url = "https://shopify.dev/apps/default-app-home"
 embedded = false
-extension_directories = ["extensions/booking"]
+extension_directories = ["extensions/booking", "extensions/booking-confirmation"]
 
 [build]
 automatically_update_urls_on_dev = true

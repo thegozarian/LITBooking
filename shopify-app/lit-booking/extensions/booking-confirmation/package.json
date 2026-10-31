@@ -1,0 +1,9 @@
+{
+  "name": "booking-confirmation",
+  "private": true,
+  "version": "1.0.0",
+  "dependencies": {
+    "preact": "^10.10.x",
+    "@shopify/ui-extensions": "~2026.10.0"
+  }
+}

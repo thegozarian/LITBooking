@@ -8,13 +8,14 @@ Project status as of 31 October 2026. This document records what is implemented 
 - A booking product page has a Calendar availability app block. It displays a four-week booking window as one week at a time, checks availability, and lets the customer select and temporarily hold a slot.
 - Selecting a slot passes the appointment time and private hold details with the product line item. Booking products use a booking-specific **Buy now** action that submits directly to Shopify checkout; they do not show the normal Add to cart action. Guest checkout is enabled and the owner reports that it is working.
 - The owner placed an order. Shopify created the order, and the selected slot now appears unavailable on the product page.
-- The owner did not find the corresponding appointment in Google Calendar. Therefore, event creation and calendar invitations are not confirmed. The booking notification and thank-you page details are also unfinished/unverified.
+- Order #1043 (Shopify ID `7249091461326`) successfully created the Google Calendar appointment for 3 November 2026, 09:00–10:00 Europe/Dublin. DynamoDB records it as `BOOKED` with an event ID, and the owner confirmed the event is visible in Google Calendar.
+- The missing step was approving the installed LIT Booking app's updated **View orders** permission. Publishing the app version alone did not update that store installation's permissions. After approval through **Open app**, the `orders/create` webhook completed the existing Lambda calendar flow without an additional code change. Landing on Shopify's default app home afterward is expected with the current application URL.
 - No claim is made here that customer or admin appointment emails were sent.
 
 ## Open work
 
 1. **Improve the date and time picker presentation.** The current picker works as a weekly grid, but its look, spacing, responsiveness, and week transition still need review on the live product page.
-2. **Find why the order did not produce a visible Google Calendar event.** Check the Shopify `orders/create` webhook delivery and response, Lambda logs for that order, the order's visible `Booking start` line item property, and whether the configured Google Calendar ID is the calendar being viewed. The Lambda first confirms DynamoDB locks, then calls Google Calendar. A failed calendar call can therefore leave the slot unavailable while no event is visible. Do not remove that lock until the order and calendar state are understood.
+2. **Calendar event creation is verified.** Preserve the approved Orders access and existing `orders/create` webhook. Customer invitations and device sync still need separate confirmation.
 3. **Show appointment details after purchase.** Add the confirmed date/time to the Shopify Thank you/order status page and the customer and store notification emails. Confirm whether the standard order confirmation already includes the public `Booking start` line item property; do not assume it does.
 4. **Verify the complete lifecycle.** With a controlled test booking, confirm order properties, webhook success, event in the configured calendar, availability reflecting the event, customer/admin notifications, and appointment details on the confirmation page. Use Shopify Payments test mode for test orders.
 
@@ -45,7 +46,7 @@ Relevant files:
 - The configured webhook endpoint is `https://wc73hkapedgmmwqcvvltpbygrq0cvggj.lambda-url.eu-north-1.on.aws/webhooks/orders/create`. The Shopify app configuration subscribes to `orders/create` and requests `read_orders`.
 - DynamoDB table: `lit-booking-dev-bookings` (as configured by the stack).
 - The order handler verifies Shopify's webhook HMAC, reads the booking line item properties, checks the hold and Google Calendar FreeBusy, makes the DynamoDB lock permanent, calls Google Calendar event insertion with an order-derived stable event ID, and then marks the hold `BOOKED` with the event ID.
-- This implementation is present in code, but the owner's latest order has not been reconciled with a created Google event. Check the webhook attempt and CloudWatch logs before treating the flow as complete.
+- This flow was verified with test order #1043: the webhook completed, the hold became `BOOKED`, and the owner saw the resulting event in Google Calendar. If a later app release adds a scope, approve its permission update on the installed store app as well as releasing the version.
 - Calendar OAuth credentials are stored in SSM Parameter Store SecureString `/lit-booking/dev/google-calendar-oauth`. Shopify's app secret is stored at `/lit-booking/dev/shopify-app-secret`. Never put either value in this repository, terminal output, or chat.
 - Configured booking calendar ID: `1b31848155d5f67f60507e51f1fcdc79a8a197b78a48612e2464491ea5af3b74@group.calendar.google.com`.
 - Google event insertion includes the shopper as an attendee when Shopify supplies an email and requests Google Calendar guest updates. This is intended behavior; it has not been confirmed for the latest order.
@@ -92,7 +93,7 @@ Source: `backend/aws-lambda/src/booking-policy.json`.
 ### Shopify CLI app extension
 
 - App project directory: `shopify-app/lit-booking`.
-- Shopify CLI is installed and authenticated. The app extension has been validated, built, and released as version `lit-booking-8` (the latest confirmed release in the project history).
+- Shopify CLI is installed and authenticated. Version `lit-booking-9` is released, including the existing calendar picker and the new Booking details Thank you extension. The Shopify app build passed.
 - Theme files and app extension have separate publishing paths: GitHub sync handles the theme; Shopify CLI deploy publishes the app extension.
 - From PowerShell or Git Bash, change to the app directory before running:
 
@@ -125,12 +126,16 @@ Source: `backend/aws-lambda/src/booking-policy.json`.
 
 - Shopify order creation has been observed for the owner's order.
 - Shopify can send its regular order confirmation, but whether it includes the appointment date/time has not been checked.
-- The code intends Google Calendar to send an attendee update when it successfully inserts an event. No event was visible to the owner, so this invitation is not confirmed.
+- Google Calendar event creation is confirmed for test order #1043. The code requests attendee updates, but receipt of the customer invitation has not been confirmed.
 - The Thank you/order status page and customer/admin notifications still need appointment-specific date/time and time-zone details. No separate email integration is currently implemented in this Lambda.
 
 ## Diagnostic information to collect next
 
-For the order that created the unavailable slot, record the Shopify order number and check whether its line item displays `Booking start`. Then inspect Shopify's `orders/create` webhook delivery result and the Lambda's CloudWatch log stream at the same time. Compare the Lambda response/log entry with the order's private booking properties without sharing the hold token or any credentials. Confirm the Google account and calendar being viewed match the calendar ID above. This will identify whether the issue is a missing webhook, missing/invalid line-item data, a Google OAuth/calendar error, or simply checking another calendar.
+The order-to-calendar issue is resolved by approving the installed app's updated View orders access. For future failures, check installed permissions, webhook delivery, Lambda logs, and the hold's `status`, `orderId`, and `eventId`. A temporary hold can make a slot unavailable even when no event was created; `BOOKED` plus a returned event ID and the visible Calendar event confirmed success in this test. The initial order #1042 was placed before the permission update and has not been backfilled.
+
+The Thank you page now has a separate **Booking details** block from LIT Booking, saved in active checkout profile `20709582` immediately after the confirmation heading. Source: `shopify-app/lit-booking/extensions/booking-confirmation/src/ThankYou.jsx`. It reads the purchased line items through Shopify's Thank you extension API, displays the product title and public `Booking start` property, and labels the time Europe/Dublin. It makes no external API request and does not expose private hold properties. Orders without `Booking start` render no block. The build and published placement are verified; its appointment content still needs checking on a booking checkout because the editor's example order has no booking properties. This extension targets Thank you only; it does not add a custom block to the separate Order status page.
+
+A hidden block named `assessment-thankyou` from the older integration remains hidden and unchanged. Do not edit or remove it as part of this work.
 
 ## Secrets and customer data
 
