@@ -53,12 +53,12 @@
   }
 
   function formatTime(isoDateTime) {
-    return new Intl.DateTimeFormat(undefined, {
+    return new Intl.DateTimeFormat("en-US", {
       timeZone: timezone,
-      hour: "2-digit",
+      hour: "numeric",
       minute: "2-digit",
-      hourCycle: "h23",
-    }).format(new Date(isoDateTime));
+      hour12: true,
+    }).format(new Date(isoDateTime)).replace(/\s/g, "").toLowerCase();
   }
 
   function formatPeriod(isoDateTime) {
@@ -178,30 +178,34 @@
       held = null;
       sessionStorage.removeItem(storageKey);
       clearLineProperties(form);
-      if (form) delete form.dataset.litBookingHoldExpiry;
+      if (form) delete form.dataset.litExpiry;
       summary.textContent = "Choose a date and time.";
       openButton.textContent = block.dataset.chooseLabel || "Choose date & time";
       enableCheckout(false);
     }
-    function selectionText(slot) {
+    function renderSelection(target, slot) {
       const minutes = Math.round((new Date(slot.end) - new Date(slot.start)) / 60000);
-      return `${formatDay(localDateValue(new Date(slot.start)), {weekday: "short", day: "numeric", month: "short", year: "numeric"})} · ${formatTime(slot.start)}–${formatTime(slot.end)} · ${minutes} minutes`;
+      const hours = Math.floor(minutes / 60), rest = minutes % 60;
+      const duration = [hours ? `${hours} hour${hours === 1 ? "" : "s"}` : "", rest ? `${rest} minutes` : ""].filter(Boolean).join(" ");
+      // All inserted values are generated from dates/numbers, never customer text.
+      const date = formatDay(localDateValue(new Date(slot.start)), {weekday:"short", day:"numeric", month:"short", year:"numeric"});
+      target.innerHTML = `<p class="lit-booking__selected-date">${date}</p><dl class="lit-booking__details">${[["Start time",formatTime(slot.start)],["End time",formatTime(slot.end)],["Duration",duration]].map(([label,value]) => `<dt>${label}</dt><dd>${value}</dd>`).join("")}</dl>`;
     }
     function saveHold(value) {
       held = value;
       sessionStorage.setItem(storageKey, JSON.stringify(value));
-      form.dataset.litBookingHoldExpiry = String(new Date(value.expires_at).getTime());
+      form.dataset.litExpiry = String(new Date(value.expires_at).getTime());
       setLineProperty(form, "Booking start", formatPeriod(value.start));
       setLineProperty(form, "Booking end", formatPeriod(value.end));
       setLineProperty(form, "Booking duration", `${Math.round((new Date(value.end) - new Date(value.start)) / 60000)} minutes`);
       setLineProperty(form, "_Booking type", bookingType);
       setLineProperty(form, "_Booking hold id", value.hold_id);
       setLineProperty(form, "_Booking hold token", value.hold_token);
-      summary.textContent = selectionText(value);
+      renderSelection(summary, value);
       openButton.textContent = block.dataset.changeLabel || "Change";
       enableCheckout(true);
       panel.hidden = true;
-      status.textContent = `Held until ${formatTime(value.expires_at)}. Ireland time.`;
+      status.textContent = `Held until ${formatTime(value.expires_at)}. Dublin/GMT time.`;
       clearTimeout(expiryTimer);
       expiryTimer = setTimeout(() => {
         clearHold(); cache.clear(); draft = null;
@@ -238,10 +242,9 @@
     }
     function renderSlots(daySlots) {
       slots.replaceChildren();
-      dayLabel.textContent = formatDay(selectedDay, {weekday:"short", day:"numeric", month:"short"});
       if (!daySlots.length) {
         const empty = document.createElement("p"); empty.className = "lit-booking__empty";
-        empty.textContent = "No times available. Choose another date.";
+        empty.textContent = "No times. Choose another date.";
         slots.append(empty); return;
       }
       let currentHour = "", row;
@@ -258,7 +261,7 @@
         button.addEventListener("click", () => {
           if (busy) return;
           draft = slot; retryRequest = null; renderSlots(daySlots); updateControls();
-          status.textContent = "Use the green check to review this time.";
+          status.textContent = "Use ✓ to review this time.";
         });
         row.append(button);
       }
@@ -268,21 +271,20 @@
       const version = ++requestVersion, day = selectedDay;
       draft = null; setBusy(true);
       dayLabel.textContent = formatDay(day, {weekday:"short", day:"numeric", month:"short"});
-      slots.textContent = "Loading available times…";
-      status.textContent = "Loading available times…";
+      slots.textContent = status.textContent = "Loading times…";
       try {
         let daySlots = cache.get(day);
         if (!daySlots) {
           const payload = await proxyRequest({action:"slots", booking_type:bookingType, start:dublinMidnight(day).toISOString(), end:dublinMidnight(addCalendarDays(day, 1)).toISOString()});
-          if (!Array.isArray(payload.slots)) throw Error("invalid_slots");
+          if (!Array.isArray(payload.slots)) throw Error();
           daySlots = payload.slots; cache.set(day, daySlots);
         }
         if (version !== requestVersion) return;
         renderSlots(daySlots);
-        status.textContent = "Select a time, then ✓. Ireland time.";
+        status.textContent = "Select a time, then ✓.";
       } catch (_) {
         if (version !== requestVersion) return;
-        slots.textContent = "Times could not be loaded.";
+        slots.textContent = "Could not load times.";
         status.textContent = "Select the date to retry.";
       } finally { if (version === requestVersion) setBusy(false); }
     }
@@ -312,7 +314,7 @@
     panel.addEventListener("keydown", (event) => { if (event.key === "Escape" && !dialog.open) { event.preventDefault(); closePicker(); } });
     check.addEventListener("click", () => {
       if (!draft || busy) return;
-      confirmText.textContent = selectionText(draft);
+      renderSelection(confirmText, draft);
       dialog.showModal(); find("back").focus();
     });
     find("back").addEventListener("click", () => { if (!busy) { dialog.close(); check.focus(); } });
@@ -327,25 +329,25 @@
         dialog.close(); openButton.focus();
       } catch (error) {
         dialog.close(); cache.delete(selectedDay);
-        const message = error.status === 409 ? "Time just taken. Choose another." : "Could not reserve this time. Try again.";
+        const message = error.status === 409 ? "Time just taken. Choose another." : "Could not reserve. Try again.";
         if (error.status === 409) await loadDay(); status.textContent = message;
       } finally { confirmButton.textContent = block.dataset.confirmLabel || "Confirm appointment"; setBusy(false); }
     });
     if (form) {
-      if (form.litBookingSubmitGuard) form.removeEventListener("submit", form.litBookingSubmitGuard, true);
-      form.litBookingSubmitGuard = (event) => {
+      if (form._litGuard) form.removeEventListener("submit", form._litGuard, true);
+      form._litGuard = (event) => {
         event.preventDefault(); event.stopImmediatePropagation();
         if (!held || new Date(held.expires_at).getTime() <= Date.now() || buyButton?.disabled) {
-          enableCheckout(false); status.textContent = "Confirm a date and time before booking."; return;
+          enableCheckout(false); status.textContent = "Confirm a time before booking."; return;
         }
         form.submit();
       };
-      form.addEventListener("submit", form.litBookingSubmitGuard, {capture:true});
+      form.addEventListener("submit", form._litGuard, {capture:true});
     }
     clearLineProperties(form); enableCheckout(false);
     if (!bookingType || !form) {
       openButton.disabled = true;
-      status.textContent = !bookingType ? "Set custom.booking_type to enable booking." : "Booking form not found.";
+      status.textContent = !bookingType ? "Set custom.booking_type." : "Booking form missing.";
       return;
     }
     const saved = sessionStorage.getItem(storageKey);
@@ -356,7 +358,7 @@
           setBusy(true);
           proxyRequest({action:"hold", booking_type:bookingType, start:current.start, request_id:current.request_id}, "POST")
             .then((value) => saveHold({...current,...value}))
-            .catch(() => { clearHold(); status.textContent = "Reservation expired. Please choose again."; })
+            .catch(() => { clearHold(); status.textContent = "Hold expired. Choose again."; })
             .finally(() => setBusy(false));
         } else clearHold();
       } catch (_) { clearHold(); }

@@ -8,7 +8,7 @@
   {{ block.shopify_attributes }}>
   {% if block.settings.heading != blank %}<h2 class="lit-booking__heading">{{ block.settings.heading | escape }}</h2>{% endif %}
   <div class="lit-booking__selection">
-    <div><p class="lit-booking__selection-label">Your appointment</p><p data-booking-summary>Choose a date and time for your appointment.</p></div>
+    <div><p class="lit-booking__selection-label">Your appointment</p><div data-booking-summary>Choose a date and time for your appointment.</div></div>
     <button type="button" class="lit-booking__open" data-booking-open aria-haspopup="dialog">{{ block.settings.choose_label | escape }}</button>
   </div>
   <p class="lit-booking__status" data-booking-status role="status" aria-live="polite">{{ block.settings.prompt | escape }}</p>
@@ -23,10 +23,10 @@
         <div class="lit-booking__days" data-booking-days></div>
       </section>
     </div>
-    <div class="lit-booking__footer"><span>Ireland time · Europe/Dublin</span><button type="button" class="lit-booking__check" data-booking-check disabled aria-label="Review selected appointment">✓</button></div>
+    <div class="lit-booking__footer"><span>Dublin/GMT time</span><button type="button" class="lit-booking__check" data-booking-check disabled aria-label="Review selected appointment">✓</button></div>
   </div>
   <dialog class="lit-booking__confirmation" data-booking-confirm aria-label="Confirm your appointment">
-    <h2>Confirm your appointment</h2><p data-booking-confirm-text></p><p class="lit-booking__timezone">Ireland time · Europe/Dublin</p>
+    <h2>Confirm your appointment</h2><div data-booking-confirm-text></div><p class="lit-booking__timezone">Dublin/GMT time</p>
     <div class="lit-booking__confirmation-actions"><button type="button" data-booking-back>Go back</button><button type="button" data-booking-confirm-button>{{ block.settings.confirm_label | escape }}</button></div>
   </dialog>
 </div>
@@ -40,7 +40,7 @@
   "settings": [
     {"type":"text","id":"heading","label":"Heading","default":"Choose a date and time"},
     {"type":"text","id":"description","label":"Calendar introduction","default":"Choose a date, then an available time."},
-    {"type":"text","id":"prompt","label":"Initial message","default":"Times are shown in Ireland time. Confirm your selection to reserve it."},
+    {"type":"text","id":"prompt","label":"Initial message","default":"Times are shown in Dublin/GMT time. Confirm your selection to reserve it."},
     {"type":"select","id":"horizon_unit","label":"Booking window unit","options":[{"value":"months","label":"Calendar months (including this month)"},{"value":"weeks","label":"Weeks from today"}],"default":"months"},
     {"type":"range","id":"horizon_count","label":"Booking window length","min":1,"max":12,"step":1,"default":2,"info":"2 calendar months allows this month and next month. Weeks are counted from today."},
     {"type":"text","id":"book_label","label":"Checkout button label","default":"Book now"},

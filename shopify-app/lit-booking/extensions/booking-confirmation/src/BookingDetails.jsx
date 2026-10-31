@@ -28,13 +28,30 @@ export function BookingDetails() {
         {bookings.map((booking) => (
           <s-stack key={booking.id} gap="small">
             <s-text type="strong">{booking.title}</s-text>
-            <s-text>Start: {booking.start}</s-text>
-            {booking.end && <s-text>End: {booking.end}</s-text>}
-            {booking.duration && <s-text>Duration: {booking.duration}</s-text>}
-            <s-text color="subdued">Ireland time (Europe/Dublin)</s-text>
+            <s-text>{booking.start.replace(/,\s*\d{1,2}:\d{2}$/, '')}</s-text>
+            <s-grid gridTemplateColumns="auto 1fr" gap="small">
+              <s-text color="subdued">Start time</s-text><s-text type="strong">{displayTime(booking.start)}</s-text>
+              {booking.end && <><s-text color="subdued">End time</s-text><s-text type="strong">{displayTime(booking.end)}</s-text></>}
+              {booking.duration && <><s-text color="subdued">Duration</s-text><s-text type="strong">{displayDuration(booking.duration)}</s-text></>}
+            </s-grid>
+            <s-text color="subdued">Dublin/GMT time</s-text>
           </s-stack>
         ))}
       </s-stack>
     </s-section>
   );
+}
+
+export function displayTime(value) {
+  const match = /(?:^|,\s*)(\d{1,2}):(\d{2})$/.exec(value);
+  if (!match) return value;
+  const hour = Number(match[1]);
+  return `${hour % 12 || 12}:${match[2]}${hour < 12 ? 'am' : 'pm'}`;
+}
+
+export function displayDuration(value) {
+  const match = /^(\d+) minutes$/.exec(value);
+  if (!match) return value;
+  const minutes = Number(match[1]), hours = Math.floor(minutes / 60), rest = minutes % 60;
+  return [hours ? `${hours} hour${hours === 1 ? '' : 's'}` : '', rest ? `${rest} minutes` : ''].filter(Boolean).join(' ');
 }

@@ -93,7 +93,7 @@ Source: `backend/aws-lambda/src/booking-policy.json`.
 ### Shopify CLI app extension
 
 - App project directory: `shopify-app/lit-booking`.
-- Shopify CLI is installed and authenticated. Version `lit-booking-16` is released, including the existing calendar picker and the new Booking details Thank you extension. The Shopify app build passed.
+- Shopify CLI is installed and authenticated. Version `lit-booking-17` is released, including the existing calendar picker and the new Booking details Thank you extension. The Shopify app build passed.
 - Theme files and app extension have separate publishing paths: GitHub sync handles the theme; Shopify CLI deploy publishes the app extension.
 - From PowerShell or Git Bash, change to the app directory before running:
 
@@ -141,7 +141,7 @@ A hidden block named `assessment-thankyou` from the older integration remains hi
 
 Never commit Shopify secrets, OAuth client secrets, refresh tokens, hold tokens, or customer details. Keep AWS credential values in SSM SecureString, use redacted logs, and share only the order number or non-sensitive error text when troubleshooting.
 
-## Product picker (version lit-booking-16)
+## Product picker (version lit-booking-17)
 
 The booking template places the Calendar availability app block directly below Book now in the main product information column. Book now stays visible and disabled until a hold has been confirmed. The compact card opens a floating picker, so opening/closing the calendar does not push other product content around. Dates appear on the right and the selected day's slots on the left. Hour and half-hour starts are separate buttons on the same row. The green check reviews the selected start, end, and duration in a confirmation dialog; the final Confirm appointment action creates the existing 15-minute backend hold. Change disables checkout, releases the existing hold, refreshes availability, and reopens the picker. Closing the picker before confirmation creates no reservation. Failed releases keep checkout disabled and allow another Change attempt.
 
@@ -149,3 +149,5 @@ Theme editor: open Products > booking, then Calendar availability. Settings incl
 
 Verification: Shopify build/theme check passed. An isolated DOM harness passed month bounds, paired half-hour buttons, disabled checkout, review/back, confirmation hold creation, line properties, release error/retry, and slot-conflict handling. Live inspection confirmed the product-column placement, viewport-contained popup, next-month limit, paired hour/half-hour slots, confirmation details, collapsed summary, and release on Change. A temporary 5 November 09:00 test hold was created and released; no test order was submitted during picker verification. The old hidden assessment-thankyou block remains untouched.
 Visible adjacent-month dates are selectable when inside the booking window. Clicking one switches to its month and loads its available slots, without requiring the month arrow first.
+
+Appointment summaries and confirmation screens now show the date above aligned Start time / End time / Duration rows, with 12-hour times (9:00am) and natural durations (1 hour). Shopper-facing timezone labels read Dublin/GMT time; calculations continue to use Europe/Dublin. Thank you and Order status use the same row layout. The storefront production asset is minified with Terser to stay within the Shopify theme asset-size check: npx terser scripts/availability.js --compress passes=3 --mangle --output extensions/booking/assets/availability.js (run from the app directory before deploying source edits).
