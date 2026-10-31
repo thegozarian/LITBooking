@@ -70,7 +70,7 @@ Source: `backend/aws-lambda/src/booking-policy.json`.
 
 - GitHub repository: [thegozarian/LITBooking](https://github.com/thegozarian/LITBooking), branch `main`.
 - The repository root is the Shopify theme. Git Bash was used to sync the GitHub-connected theme; changes to theme files on `main` are the theme publishing path. Confirm GitHub and Shopify theme sync status before editing the same theme files in both places.
-- The Shopify theme editor can create commits directly to GitHub. Its latest observed commit at the time of this update is `48ad606` (`Update from Shopify for theme LITBooking/main...`). Fetch before pushing local work so that this theme-editor change is not overwritten.
+- The Shopify theme editor can create commits directly to GitHub. The latest observed theme-editor commit is `48ad606` (`Update from Shopify for theme LITBooking/main...`). Fetch before pushing local work so that this theme-editor change is not overwritten.
 - The local clone at `C:\Users\Sean\Documents\Codex\2026-10-30\at` was not caught up to that GitHub commit when this README was written; its `origin/main` tracking ref was stale and local `main` showed two commits ahead of that stale ref. The local GitHub push had previously been rejected for non-fast-forward, and local HTTPS authentication needed troubleshooting. Fetch/reconcile before pushing; do not force-push.
 - Git identity can be configured in Git Bash if needed:
 
