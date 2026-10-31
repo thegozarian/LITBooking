@@ -15,7 +15,7 @@
     "checkout_grace_minutes": 15
   },
   "booking_types": {
-    "video_chat": { "duration_minutes": 60, "buffer_minutes": 30 },
+    "video_chat": { "duration_minutes": 30, "buffer_minutes": 30 },
     "phone_call": { "duration_minutes": 60, "buffer_minutes": 30 },
     "remote_service": { "duration_minutes": 120, "buffer_minutes": 30 },
     "site_visit": {
