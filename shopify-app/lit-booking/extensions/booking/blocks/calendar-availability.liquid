@@ -1,4 +1,5 @@
 <div class="lit-booking" data-lit-booking-availability
+  data-button-pulse="{{ block.settings.button_pulse }}"
   data-booking-type="{{ product.metafields.custom.booking_type.value | default: '' | escape }}"
   data-product-id="{{ product.id }}" data-horizon-unit="{{ block.settings.horizon_unit }}"
   data-horizon-count="{{ block.settings.horizon_count }}"
@@ -47,6 +48,7 @@
     {"type":"text","id":"choose_label","label":"Open calendar label","default":"Choose date & time"},
     {"type":"text","id":"change_label","label":"Change selection label","default":"Change"},
     {"type":"text","id":"confirm_label","label":"Confirmation button label","default":"Confirm appointment"},
+    {"type":"checkbox","id":"button_pulse","label":"Pulse the date button on page load","default":true},
     {"type":"color","id":"accent","label":"Accent color","default":"#217664"},
     {"type":"range","id":"corner_radius","label":"Corner radius","min":0,"max":24,"step":2,"unit":"px","default":12}
   ]
