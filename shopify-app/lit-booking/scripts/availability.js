@@ -1,7 +1,7 @@
 (() => {
   const timezone = "Europe/Dublin";
-  const windowDays = 7;
-  const bookingHorizonDays = 28;
+
+
   const proxyPath = "apps/lit-booking";
 
   function localDateValue(date) {
@@ -124,301 +124,239 @@
   function initAvailabilityBlock(block) {
     if (block.dataset.initialized === "true") return;
     block.dataset.initialized = "true";
-
-    const previousButton = block.querySelector("[data-lit-booking-previous]");
-    const nextButton = block.querySelector("[data-lit-booking-next]");
-    const weekLabel = block.querySelector("[data-lit-booking-week-label]");
-    const status = block.querySelector("[data-lit-booking-status]");
-    const weekGrid = block.querySelector("[data-lit-booking-week]");
+    const find = (name) => block.querySelector(`[data-booking-${name}]`);
+    const panel = find("panel"), grid = find("days"), slots = find("slots");
+    const monthLabel = find("month"), dayLabel = find("day"), status = find("status");
+    const previous = find("previous"), next = find("next"), check = find("check");
+    const openButton = find("open"), summary = find("summary"), dialog = find("confirm");
+    const confirmButton = find("confirm-button"), confirmText = find("confirm-text");
+    const form = productFormFor(block), checkout = form?.querySelector("[data-lit-booking-checkout]");
+    const buyButton = checkout?.querySelector('button[type="submit"]');
     const bookingType = block.dataset.bookingType;
-    const productId = block.dataset.productId;
-    const holdStorageKey = `lit-booking-hold:${productId}`;
-    const form = productFormFor(block);
-    const checkoutButton = form?.querySelector("[data-lit-booking-checkout]");
-    if (checkoutButton) checkoutButton.hidden = true;
+    const storageKey = `lit-booking-hold:${block.dataset.productId}`;
+    const today = localDateValue(new Date());
+    const monthStart = (date) => `${date.slice(0, 7)}-01`;
+    function shiftMonth(date, amount) {
+      const value = new Date(`${monthStart(date)}T12:00:00Z`);
+      value.setUTCMonth(value.getUTCMonth() + amount);
+      return value.toISOString().slice(0, 10);
+    }
+    const count = Math.max(1, Math.min(12, Number(block.dataset.horizonCount) || 2));
+    const horizonEnd = block.dataset.horizonUnit === "weeks"
+      ? addCalendarDays(today, count * 7 - 1)
+      : addCalendarDays(shiftMonth(today, count), -1);
+    let shownMonth = monthStart(today), selectedDay = today, draft = null, held = null;
+    let busy = false, requestVersion = 0, expiryTimer, retryRequest = null;
+    const cache = new Map();
+    if (checkout) checkout.hidden = false;
+    if (buyButton) buyButton.querySelector("span").textContent = block.dataset.bookLabel || "Book now";
 
-    if (!previousButton || !nextButton || !weekLabel || !status || !weekGrid) return;
-
-    if (!bookingType) {
-      previousButton.disabled = true;
-      nextButton.disabled = true;
-      status.textContent = "This product needs the custom.booking_type metafield before times can be shown.";
-      weekGrid.replaceChildren();
+    function enableCheckout(enabled) {
+      if (buyButton) { buyButton.disabled = !enabled; buyButton.setAttribute("aria-disabled", String(!enabled)); }
+    }
+    function updateControls() {
+      previous.disabled = busy || shownMonth <= monthStart(today);
+      next.disabled = busy || shiftMonth(shownMonth, 1) > monthStart(horizonEnd);
+      check.disabled = busy || !draft;
+      confirmButton.disabled = busy;
+      openButton.disabled = busy;
+      find("back").disabled = busy;
+      find("close").disabled = busy;
+      grid.querySelectorAll("button").forEach((button) => { button.disabled = busy || button.dataset.unavailable === "true"; });
+      slots.querySelectorAll("button").forEach((button) => { button.disabled = busy || button.dataset.unavailable === "true"; });
+    }
+    function setBusy(value) { busy = value; updateControls(); }
+    function clearHold() {
+      clearTimeout(expiryTimer);
+      held = null;
+      sessionStorage.removeItem(storageKey);
+      clearLineProperties(form);
+      if (form) delete form.dataset.litBookingHoldExpiry;
+      summary.textContent = block.dataset.emptyLabel || "Choose a date and time for your appointment.";
+      openButton.textContent = block.dataset.chooseLabel || "Choose date & time";
+      enableCheckout(false);
+    }
+    function selectionText(slot) {
+      const minutes = Math.round((new Date(slot.end) - new Date(slot.start)) / 60000);
+      return `${formatDay(localDateValue(new Date(slot.start)), {weekday: "short", day: "numeric", month: "short", year: "numeric"})} · ${formatTime(slot.start)}–${formatTime(slot.end)} · ${minutes} minutes`;
+    }
+    function saveHold(value) {
+      held = value;
+      sessionStorage.setItem(storageKey, JSON.stringify(value));
+      form.dataset.litBookingHoldExpiry = String(new Date(value.expires_at).getTime());
+      setLineProperty(form, "Booking start", formatPeriod(value.start));
+      setLineProperty(form, "Booking end", formatPeriod(value.end));
+      setLineProperty(form, "Booking duration", `${Math.round((new Date(value.end) - new Date(value.start)) / 60000)} minutes`);
+      setLineProperty(form, "_Booking type", bookingType);
+      setLineProperty(form, "_Booking hold id", value.hold_id);
+      setLineProperty(form, "_Booking hold token", value.hold_token);
+      summary.textContent = selectionText(value);
+      openButton.textContent = block.dataset.changeLabel || "Change";
+      enableCheckout(true);
+      panel.hidden = true;
+      status.textContent = `Reserved until ${formatTime(value.expires_at)}. Continue to checkout before then. Ireland time.`;
+      clearTimeout(expiryTimer);
+      expiryTimer = setTimeout(() => {
+        clearHold(); cache.clear(); draft = null;
+        status.textContent = "Your reservation expired. Please choose a time again.";
+      }, Math.max(0, new Date(value.expires_at).getTime() - Date.now()));
+    }
+    async function releaseHold() {
+      if (!held) return;
+      if (new Date(held.expires_at).getTime() > Date.now()) {
+        await proxyRequest({action: "release", hold_id: held.hold_id, hold_token: held.hold_token}, "POST");
+      }
+      clearHold(); cache.clear();
+    }
+    function renderMonth() {
+      monthLabel.textContent = formatDay(shownMonth, {month: "long", year: "numeric"});
+      grid.replaceChildren();
+      const startOffset = (new Date(`${shownMonth}T12:00:00Z`).getUTCDay() + 6) % 7;
+      const firstCell = addCalendarDays(shownMonth, -startOffset);
+      for (let index = 0; index < 42; index++) {
+        const day = addCalendarDays(firstCell, index);
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = String(Number(day.slice(-2)));
+        button.dataset.unavailable = String(day < today || day > horizonEnd || monthStart(day) !== shownMonth);
+        button.disabled = button.dataset.unavailable === "true";
+        button.className = "lit-booking__date";
+        button.setAttribute("aria-label", formatDay(day, {weekday:"long", day:"numeric", month:"long", year:"numeric"}));
+        button.setAttribute("aria-pressed", String(day === selectedDay));
+        if (day === today) button.setAttribute("aria-current", "date");
+        button.addEventListener("click", () => { if (!busy) { selectedDay = day; draft = null; renderMonth(); loadDay(); } });
+        grid.append(button);
+      }
+      updateControls();
+    }
+    function renderSlots(daySlots) {
+      slots.replaceChildren();
+      dayLabel.textContent = formatDay(selectedDay, {weekday:"short", day:"numeric", month:"short"});
+      if (!daySlots.length) {
+        const empty = document.createElement("p"); empty.className = "lit-booking__empty";
+        empty.textContent = "No appointments available on this day. Choose another date.";
+        slots.append(empty); return;
+      }
+      let currentHour = "", row;
+      for (const slot of daySlots) {
+        const hour = formatTime(slot.start).split(":")[0];
+        if (hour !== currentHour) { row = document.createElement("div"); row.className = "lit-booking__slot-row"; slots.append(row); currentHour = hour; }
+        const button = document.createElement("button");
+        button.type = "button"; button.className = "lit-booking__slot";
+        button.textContent = formatTime(slot.start);
+        button.dataset.unavailable = String(!slot.available); button.disabled = !slot.available;
+        button.setAttribute("aria-label", `${formatTime(slot.start)} ${slot.available ? "available" : "booked or unavailable"}`);
+        button.setAttribute("aria-pressed", String(draft?.start === slot.start));
+        if (!slot.available) button.title = "Booked or unavailable";
+        button.addEventListener("click", () => {
+          if (busy) return;
+          draft = slot; retryRequest = null; renderSlots(daySlots); updateControls();
+          status.textContent = `${selectionText(slot)}. Use the green check to review your selection.`;
+        });
+        row.append(button);
+      }
+      updateControls();
+    }
+    async function loadDay() {
+      const version = ++requestVersion, day = selectedDay;
+      draft = null; setBusy(true);
+      dayLabel.textContent = formatDay(day, {weekday:"short", day:"numeric", month:"short"});
+      slots.textContent = "Loading available times…";
+      status.textContent = "Loading available times…";
+      try {
+        let daySlots = cache.get(day);
+        if (!daySlots) {
+          const payload = await proxyRequest({action:"slots", booking_type:bookingType, start:dublinMidnight(day).toISOString(), end:dublinMidnight(addCalendarDays(day, 1)).toISOString()});
+          if (!Array.isArray(payload.slots)) throw Error("invalid_slots");
+          daySlots = payload.slots; cache.set(day, daySlots);
+        }
+        if (version !== requestVersion) return;
+        renderSlots(daySlots);
+        status.textContent = "Select a time, then use the green check. Times are shown in Ireland time.";
+      } catch (_) {
+        if (version !== requestVersion) return;
+        slots.textContent = "Times could not be loaded.";
+        status.textContent = "Please choose the date again to retry.";
+      } finally { if (version === requestVersion) setBusy(false); }
+    }
+    function positionPanel() {
+      panel.style.removeProperty("--booking-offset");
+      const rect = panel.getBoundingClientRect();
+      const offset = Math.max(12 - rect.left, Math.min(0, window.innerWidth - 12 - rect.right));
+      panel.style.setProperty("--booking-offset", `${offset}px`);
+    }
+    async function openPicker() {
+      if (busy) return;
+      enableCheckout(false); setBusy(true);
+      try { await releaseHold(); }
+      catch (_) { status.textContent = "Your previous reservation could not be released. Please try Change again."; setBusy(false); return; }
+      setBusy(false); cache.clear(); panel.hidden = false; draft = null;
+      renderMonth(); positionPanel(); await loadDay();
+      find("close").focus();
+    }
+    function closePicker() {
+      if (busy) return;
+      panel.hidden = true; openButton.focus();
+    }
+    previous.addEventListener("click", () => { if (!busy) { shownMonth = shiftMonth(shownMonth, -1); selectedDay = shownMonth < today ? today : shownMonth; renderMonth(); loadDay(); } });
+    next.addEventListener("click", () => { if (!busy) { shownMonth = shiftMonth(shownMonth, 1); selectedDay = shownMonth; renderMonth(); loadDay(); } });
+    openButton.addEventListener("click", openPicker);
+    find("close").addEventListener("click", closePicker);
+    panel.addEventListener("keydown", (event) => { if (event.key === "Escape" && !dialog.open) { event.preventDefault(); closePicker(); } });
+    check.addEventListener("click", () => {
+      if (!draft || busy) return;
+      confirmText.textContent = selectionText(draft);
+      dialog.showModal(); find("back").focus();
+    });
+    find("back").addEventListener("click", () => { if (!busy) { dialog.close(); check.focus(); } });
+    dialog.addEventListener("cancel", (event) => { if (busy) event.preventDefault(); });
+    confirmButton.addEventListener("click", async () => {
+      if (!draft || busy || !form) return;
+      setBusy(true); confirmButton.textContent = "Reserving…";
+      retryRequest ||= crypto.randomUUID();
+      try {
+        const hold = await proxyRequest({action:"hold", booking_type:bookingType, start:draft.start, request_id:retryRequest}, "POST");
+        saveHold({...hold, booking_type:bookingType, start:draft.start, end:draft.end, request_id:retryRequest});
+        dialog.close(); openButton.focus();
+      } catch (error) {
+        dialog.close(); cache.delete(selectedDay);
+        const message = error.status === 409 ? "That time was just taken. Please choose another." : "We could not confirm this time. Please try again.";
+        await loadDay(); status.textContent = message;
+      } finally { confirmButton.textContent = block.dataset.confirmLabel || "Confirm appointment"; setBusy(false); }
+    });
+    if (form) {
+      if (form.litBookingSubmitGuard) form.removeEventListener("submit", form.litBookingSubmitGuard, true);
+      form.litBookingSubmitGuard = (event) => {
+        event.preventDefault(); event.stopImmediatePropagation();
+        if (!held || new Date(held.expires_at).getTime() <= Date.now() || buyButton?.disabled) {
+          enableCheckout(false); status.textContent = "Choose and confirm a date and time before booking."; return;
+        }
+        form.submit();
+      };
+      form.addEventListener("submit", form.litBookingSubmitGuard, {capture:true});
+    }
+    clearLineProperties(form); enableCheckout(false);
+    if (!bookingType || !form) {
+      openButton.disabled = true;
+      status.textContent = !bookingType ? "Set this product’s custom.booking_type metafield to enable booking." : "The booking product form was not found.";
       return;
     }
-
-    if (form && form.dataset.litBookingHoldGuard !== "true") {
-      form.dataset.litBookingHoldGuard = "true";
-      form.addEventListener("submit", (event) => {
-        const token = form.querySelector('input[data-lit-booking-property="_Booking hold token"]');
-        const expiry = Number(form.dataset.litBookingHoldExpiry || 0);
-        if (!token?.value || expiry <= Date.now()) {
-          event.preventDefault();
-          event.stopImmediatePropagation();
-          status.textContent = "Choose and hold an available time before continuing to checkout.";
-          block.scrollIntoView({ behavior: "smooth", block: "center" });
-          return;
-        }
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        form.submit();
-      }, { capture: true });
-    }
-
-    const today = localDateValue(new Date());
-    let weekOffset = 0;
-    let activeSlotButton = null;
-    let loading = false;
-
-    function updateNavigation() {
-      previousButton.disabled = loading || weekOffset === 0;
-      nextButton.disabled = loading || weekOffset + windowDays >= bookingHorizonDays;
-    }
-
-    function setBusy(isBusy) {
-      loading = isBusy;
-      updateNavigation();
-      weekGrid.querySelectorAll("button").forEach((button) => {
-        button.disabled = isBusy || button.dataset.available !== "true";
-      });
-    }
-
-    function saveHold(hold, slotButton) {
-      const state = {
-        ...hold,
-        booking_type: bookingType,
-        start: hold.start,
-        request_id: hold.request_id,
-      };
-      sessionStorage.setItem(holdStorageKey, JSON.stringify(state));
-      if (!form) {
-        status.textContent = "The time is held, but the product form was not found. Please contact the shop before retrying.";
-        return;
-      }
-
-      form.dataset.litBookingHoldExpiry = String(new Date(state.expires_at).getTime());
-      setLineProperty(form, "Booking start", formatPeriod(state.start));
-      if (state.end) {
-        setLineProperty(form, "Booking end", formatPeriod(state.end));
-        setLineProperty(form, "Booking duration", `${Math.round((new Date(state.end) - new Date(state.start)) / 60000)} minutes`);
-      }
-      setLineProperty(form, "_Booking type", state.booking_type);
-      setLineProperty(form, "_Booking hold id", state.hold_id);
-      setLineProperty(form, "_Booking hold token", state.hold_token);
-      if (checkoutButton) checkoutButton.hidden = false;
-      if (slotButton) {
-        slotButton.textContent = `Held · ${formatTime(state.start)}`;
-        slotButton.classList.add("lit-booking-availability__slot--held");
-        slotButton.dataset.available = "false";
-        slotButton.disabled = true;
-        activeSlotButton = slotButton;
-      }
-      status.textContent = `Time held until ${formatPeriod(state.expires_at)}. Continue to checkout before the hold expires.`;
-      window.setTimeout(() => {
-        const raw = sessionStorage.getItem(holdStorageKey);
-        if (!raw) return;
-        try {
-          if (JSON.parse(raw).hold_id === state.hold_id) {
-            clearHold();
-            status.textContent = "Your time hold expired. Choose and hold a time again.";
-          }
-        } catch (_error) {
-          clearHold();
-        }
-      }, Math.max(0, new Date(state.expires_at).getTime() - Date.now()));
-    }
-
-    function clearHold() {
-      sessionStorage.removeItem(holdStorageKey);
-      if (form) {
-        delete form.dataset.litBookingHoldExpiry;
-        clearLineProperties(form);
-      }
-      if (checkoutButton) checkoutButton.hidden = true;
-      if (activeSlotButton) {
-        activeSlotButton.textContent = formatTime(activeSlotButton.dataset.start);
-        activeSlotButton.classList.remove("lit-booking-availability__slot--held");
-        activeSlotButton.dataset.available = "true";
-        activeSlotButton.disabled = false;
-        activeSlotButton = null;
-      }
-    }
-
-    async function releaseCurrentHold() {
-      const raw = sessionStorage.getItem(holdStorageKey);
-      if (!raw) return;
-      const current = JSON.parse(raw);
-      if (new Date(current.expires_at).getTime() <= Date.now()) {
-        clearHold();
-        return;
-      }
-      await proxyRequest(
-        { action: "release", hold_id: current.hold_id, hold_token: current.hold_token },
-        "POST",
-      );
-      clearHold();
-    }
-
-    async function selectSlot(slot, slotButton) {
-      setBusy(true);
-      status.textContent = "Holding that time…";
+    const saved = sessionStorage.getItem(storageKey);
+    if (saved) {
       try {
-        await releaseCurrentHold();
-        const requestId = crypto.randomUUID();
-        const hold = await proxyRequest(
-          {
-            action: "hold",
-            booking_type: bookingType,
-            start: slot.start,
-            request_id: requestId,
-          },
-          "POST",
-        );
-        saveHold({ ...hold, start: slot.start, end: slot.end, request_id: requestId }, slotButton);
-      } catch (error) {
-        status.textContent = error.status === 409
-          ? "That time was just taken. Refresh the week to see the latest availability."
-          : "The time could not be held. Please try again.";
-      } finally {
-        setBusy(false);
-      }
+        const current = JSON.parse(saved);
+        if (current.end && current.booking_type === bookingType && new Date(current.expires_at).getTime() > Date.now()) {
+          setBusy(true);
+          proxyRequest({action:"hold", booking_type:bookingType, start:current.start, request_id:current.request_id}, "POST")
+            .then((value) => saveHold({...current,...value}))
+            .catch(() => { clearHold(); status.textContent = "Your previous reservation is no longer available. Please choose again."; })
+            .finally(() => setBusy(false));
+        } else clearHold();
+      } catch (_) { clearHold(); }
     }
-
-    function renderWeek(slots, startDate) {
-      weekGrid.replaceChildren();
-      for (let dayOffset = 0; dayOffset < windowDays; dayOffset += 1) {
-        const dateValue = addCalendarDays(startDate, dayOffset);
-        const daySlots = slots.filter((slot) => localDateValue(new Date(slot.start)) === dateValue);
-        const dayCard = document.createElement("section");
-        dayCard.className = "lit-booking-availability__day";
-
-        const dayHeading = document.createElement("h3");
-        dayHeading.className = "lit-booking-availability__day-heading";
-        dayHeading.textContent = `${formatDay(dateValue, { weekday: "short" })} ${formatDay(dateValue, { day: "numeric", month: "short" })}`;
-        dayCard.append(dayHeading);
-
-        const slotList = document.createElement("div");
-        slotList.className = "lit-booking-availability__day-slots";
-        if (daySlots.length === 0) {
-          const empty = document.createElement("p");
-          empty.className = "lit-booking-availability__empty-day";
-          empty.textContent = "No times";
-          slotList.append(empty);
-        }
-
-        for (const slot of daySlots) {
-          const slotButton = document.createElement("button");
-          slotButton.type = "button";
-          slotButton.className = "lit-booking-availability__slot";
-          slotButton.dataset.start = slot.start;
-          slotButton.dataset.available = slot.available === true ? "true" : "false";
-          slotButton.textContent = slot.available === true ? formatTime(slot.start) : "Booked";
-          slotButton.disabled = slot.available !== true;
-          slotButton.setAttribute(
-            "aria-label",
-            `${formatTime(slot.start)} ${slot.available === true ? "available" : "booked or unavailable"}`,
-          );
-          if (slot.available === true) {
-            slotButton.addEventListener("click", () => selectSlot(slot, slotButton));
-          } else {
-            slotButton.classList.add("lit-booking-availability__slot--unavailable");
-          }
-          slotList.append(slotButton);
-        }
-
-        dayCard.append(slotList);
-        weekGrid.append(dayCard);
-      }
-    }
-
-    async function loadWeek() {
-      const startDate = addCalendarDays(today, weekOffset);
-      const endDate = addCalendarDays(startDate, windowDays);
-      const endLabelDate = addCalendarDays(startDate, windowDays - 1);
-      setBusy(true);
-      status.textContent = "Loading bookable times…";
-
-      try {
-        const start = dublinMidnight(startDate);
-        const end = dublinMidnight(endDate);
-        const payload = await proxyRequest({
-          action: "slots",
-          booking_type: bookingType,
-          start: start.toISOString(),
-          end: end.toISOString(),
-        });
-        if (!Array.isArray(payload.slots)) throw new Error("invalid_slots");
-        weekGrid.style.setProperty("--booking-slide", weekOffset === 0 ? "0" : "10px");
-        weekGrid.classList.add("is-changing");
-        await new Promise((resolve) => window.setTimeout(resolve, 120));
-        renderWeek(payload.slots, startDate);
-        weekLabel.textContent = `${formatDay(startDate, { day: "numeric", month: "short" })} – ${formatDay(endLabelDate, { day: "numeric", month: "short", year: "numeric" })}`;
-        requestAnimationFrame(() => weekGrid.classList.remove("is-changing"));
-        status.textContent = "Choose an available time. Grey slots are booked or unavailable.";
-      } catch (_error) {
-        weekGrid.classList.remove("is-changing");
-        status.textContent = "Bookable times could not be loaded. Please try again later.";
-      } finally {
-        setBusy(false);
-      }
-    }
-
-    async function changeWeek(offset) {
-      if (loading || offset < 0 || offset + windowDays > bookingHorizonDays) return;
-      try {
-        await releaseCurrentHold();
-      } catch (_error) {
-        status.textContent = "Your existing time could not be released. Wait for it to expire before changing weeks.";
-        return;
-      }
-      weekOffset = offset;
-      await loadWeek();
-    }
-
-    previousButton.addEventListener("click", () => changeWeek(weekOffset - windowDays));
-    nextButton.addEventListener("click", () => changeWeek(weekOffset + windowDays));
-
-    const savedHold = sessionStorage.getItem(holdStorageKey);
-    if (savedHold) {
-      try {
-        const current = JSON.parse(savedHold);
-        if (new Date(current.expires_at).getTime() > Date.now()) {
-          proxyRequest(
-            {
-              action: "hold",
-              booking_type: current.booking_type,
-              start: current.start,
-              request_id: current.request_id,
-            },
-            "POST",
-          )
-            .then((hold) => {
-              saveHold({ ...hold, start: current.start, end: current.end, request_id: current.request_id });
-            })
-            .catch(() => {
-              clearHold();
-              status.textContent = "Your previous hold expired or is no longer available. Choose a time again.";
-            });
-        } else {
-          clearHold();
-        }
-      } catch (_error) {
-        clearHold();
-      }
-    }
-
-    loadWeek();
+    window.addEventListener("resize", () => { if (!panel.hidden) positionPanel(); });
   }
-
-  function init() {
-    document.querySelectorAll("[data-lit-booking-availability]").forEach(initAvailabilityBlock);
-  }
-
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", init, { once: true });
-  } else {
-    init();
-  }
-
+  function init() { document.querySelectorAll("[data-lit-booking-availability]").forEach(initAvailabilityBlock); }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init, {once:true}); else init();
   document.addEventListener("shopify:section:load", init);
 })();

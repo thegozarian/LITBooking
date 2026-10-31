@@ -70,6 +70,22 @@
           "settings": {
             "share_label": "Share"
           }
+        },
+        "lit_booking_calendar_availability_4XBdjL": {
+          "type": "shopify://apps/lit-booking/blocks/calendar-availability/01a191bd-ee51-75d9-9709-2bb5adb8e946",
+          "settings": {
+            "heading": "Choose a date and time",
+            "description": "Choose a date, then an available time.",
+            "prompt": "Times are shown in Ireland time. Confirm your selection to reserve it.",
+            "horizon_unit": "months",
+            "horizon_count": 2,
+            "book_label": "Book now",
+            "choose_label": "Choose date & time",
+            "change_label": "Change",
+            "confirm_label": "Confirm appointment",
+            "accent": "#217664",
+            "corner_radius": 12
+          }
         }
       },
       "block_order": [
@@ -78,6 +94,7 @@
         "description",
         "variant-picker",
         "buy-buttons",
+        "lit_booking_calendar_availability_4XBdjL",
         "collapsible-row-1",
         "collapsible-row-0",
         "collapsible-row-2",
@@ -128,31 +145,11 @@
         "padding_top": 36,
         "padding_bottom": 44
       }
-    },
-    "1793451063f2dc66e9": {
-      "type": "apps",
-      "blocks": {
-        "lit_booking_calendar_availability_4XBdjL": {
-          "type": "shopify://apps/lit-booking/blocks/calendar-availability/01a191bd-ee51-75d9-9709-2bb5adb8e946",
-          "settings": {
-            "heading": "Choose a date and time",
-            "description": "Choose an available time from the next four weeks. Unavailable times are marked.",
-            "prompt": "Times are shown in Ireland time. Select an open time to reserve it for checkout."
-          }
-        }
-      },
-      "block_order": [
-        "lit_booking_calendar_availability_4XBdjL"
-      ],
-      "settings": {
-        "include_margins": true
-      }
     }
   },
   "order": [
     "main",
     "disclosures",
-    "related-products",
-    "1793451063f2dc66e9"
+    "related-products"
   ]
 }

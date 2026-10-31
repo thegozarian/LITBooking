@@ -1,56 +1,54 @@
-<div
-  class="lit-booking-availability"
-  data-lit-booking-availability
+<div class="lit-booking" data-lit-booking-availability
   data-booking-type="{{ product.metafields.custom.booking_type.value | default: '' | escape }}"
-  data-product-id="{{ product.id }}"
-  {{ block.shopify_attributes }}
->
-  <h2 class="lit-booking-availability__heading">{{ block.settings.heading | escape }}</h2>
-  {% if block.settings.description != blank %}
-    <p class="lit-booking-availability__description">{{ block.settings.description | escape }}</p>
-  {% endif %}
-
-  <div class="lit-booking-availability__week-controls" aria-label="Booking weeks">
-    <button type="button" data-lit-booking-previous aria-label="Show previous week">Previous week</button>
-    <p class="lit-booking-availability__week-label" data-lit-booking-week-label aria-live="polite"></p>
-    <button type="button" data-lit-booking-next aria-label="Show next week">Next week</button>
+  data-product-id="{{ product.id }}" data-horizon-unit="{{ block.settings.horizon_unit }}"
+  data-horizon-count="{{ block.settings.horizon_count }}"
+  data-book-label="{{ block.settings.book_label | escape }}" data-choose-label="{{ block.settings.choose_label | escape }}"
+  data-change-label="{{ block.settings.change_label | escape }}" data-confirm-label="{{ block.settings.confirm_label | escape }}"
+  style="--booking-accent: {{ block.settings.accent }}; --booking-radius: {{ block.settings.corner_radius }}px;"
+  {{ block.shopify_attributes }}>
+  {% if block.settings.heading != blank %}<h2 class="lit-booking__heading">{{ block.settings.heading | escape }}</h2>{% endif %}
+  <div class="lit-booking__selection">
+    <div><p class="lit-booking__selection-label">Your appointment</p><p data-booking-summary>Choose a date and time for your appointment.</p></div>
+    <button type="button" class="lit-booking__open" data-booking-open aria-haspopup="dialog">{{ block.settings.choose_label | escape }}</button>
   </div>
-
-  {% if block.settings.prompt != blank %}
-    <p class="lit-booking-availability__prompt">{{ block.settings.prompt | escape }}</p>
-  {% endif %}
-  <p class="lit-booking-availability__status" data-lit-booking-status role="status" aria-live="polite"></p>
-  <div class="lit-booking-availability__week" data-lit-booking-week></div>
+  <p class="lit-booking__status" data-booking-status role="status" aria-live="polite">{{ block.settings.prompt | escape }}</p>
+  <div class="lit-booking__panel" data-booking-panel hidden role="dialog" aria-label="Choose an appointment">
+    <div class="lit-booking__panel-header"><span>{{ block.settings.heading | escape }}</span><button type="button" data-booking-close aria-label="Close calendar">×</button></div>
+    {% if block.settings.description != blank %}<p class="lit-booking__description">{{ block.settings.description | escape }}</p>{% endif %}
+    <div class="lit-booking__picker">
+      <section class="lit-booking__times" aria-label="Available appointment times"><h3 data-booking-day></h3><div class="lit-booking__slots" data-booking-slots></div></section>
+      <section class="lit-booking__calendar" aria-label="Appointment dates">
+        <div class="lit-booking__navigation"><button type="button" data-booking-previous aria-label="Previous month">‹</button><h3 data-booking-month aria-live="polite"></h3><button type="button" data-booking-next aria-label="Next month">›</button></div>
+        <div class="lit-booking__weekdays" aria-hidden="true"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
+        <div class="lit-booking__days" data-booking-days></div>
+      </section>
+    </div>
+    <div class="lit-booking__footer"><span>Ireland time · Europe/Dublin</span><button type="button" class="lit-booking__check" data-booking-check disabled aria-label="Review selected appointment">✓</button></div>
+  </div>
+  <dialog class="lit-booking__confirmation" data-booking-confirm aria-label="Confirm your appointment">
+    <h2>Confirm your appointment</h2><p data-booking-confirm-text></p><p class="lit-booking__timezone">Ireland time · Europe/Dublin</p>
+    <div class="lit-booking__confirmation-actions"><button type="button" data-booking-back>Go back</button><button type="button" data-booking-confirm-button>{{ block.settings.confirm_label | escape }}</button></div>
+  </dialog>
 </div>
-
 {% schema %}
 {
   "name": "Calendar availability",
   "target": "content",
   "javascript": "availability.js",
   "stylesheet": "availability.css",
-  "enabled_on": {
-    "templates": ["product"]
-  },
+  "enabled_on": {"templates": ["product"]},
   "settings": [
-    {
-      "type": "text",
-      "id": "heading",
-      "label": "Heading",
-      "default": "Choose a date and time"
-    },
-    {
-      "type": "text",
-      "id": "description",
-      "label": "Description",
-      "default": "Choose a time from the next four weeks. Unavailable times are marked."
-    },
-    {
-      "type": "text",
-      "id": "prompt",
-      "label": "Initial message",
-      "default": "Times are shown in Ireland time. Choose an available time to reserve it for checkout."
-    }
+    {"type":"text","id":"heading","label":"Heading","default":"Choose a date and time"},
+    {"type":"text","id":"description","label":"Calendar introduction","default":"Choose a date, then an available time."},
+    {"type":"text","id":"prompt","label":"Initial message","default":"Times are shown in Ireland time. Confirm your selection to reserve it."},
+    {"type":"select","id":"horizon_unit","label":"Booking window unit","options":[{"value":"months","label":"Calendar months (including this month)"},{"value":"weeks","label":"Weeks from today"}],"default":"months"},
+    {"type":"range","id":"horizon_count","label":"Booking window length","min":1,"max":12,"step":1,"default":2,"info":"2 calendar months allows this month and next month. Weeks are counted from today."},
+    {"type":"text","id":"book_label","label":"Checkout button label","default":"Book now"},
+    {"type":"text","id":"choose_label","label":"Open calendar label","default":"Choose date & time"},
+    {"type":"text","id":"change_label","label":"Change selection label","default":"Change"},
+    {"type":"text","id":"confirm_label","label":"Confirmation button label","default":"Confirm appointment"},
+    {"type":"color","id":"accent","label":"Accent color","default":"#217664"},
+    {"type":"range","id":"corner_radius","label":"Corner radius","min":0,"max":24,"step":2,"unit":"px","default":12}
   ]
 }
 {% endschema %}

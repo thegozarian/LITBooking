@@ -108,14 +108,16 @@
           {% endunless %}
           {%- if show_dynamic_checkout -%}
             {% if is_booking_product %}
-              <div data-lit-booking-checkout hidden>
+              <div data-lit-booking-checkout>
                 <button
                   id="ProductBookingCheckoutButton-{{ section_id }}"
                   type="submit"
+                  disabled
+                  aria-disabled="true"
                   name="add"
                   class="product-form__submit button button--primary button--full-width"
                 >
-                  <span>Buy now</span>
+                  <span>Book now</span>
                   {%- render 'loading-spinner' -%}
                 </button>
               </div>

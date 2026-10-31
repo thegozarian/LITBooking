@@ -7,7 +7,7 @@
     "close_time": "17:00",
     "excluded_holiday_region": "IE",
     "minimum_notice_hours": 24,
-    "advance_booking_days": 30,
+    "advance_booking_days": 366,
     "calendar_view_days": 7
   },
   "holds": {

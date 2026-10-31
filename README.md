@@ -5,7 +5,7 @@ Project status as of 31 October 2026. This document records what is implemented 
 ## Current status
 
 - The live Shopify store uses the GitHub-connected theme in `thegozarian/LITBooking`; the theme files live at this repository root.
-- A booking product page has a Calendar availability app block. It displays a four-week booking window as one week at a time, checks availability, and lets the customer select and temporarily hold a slot.
+- A booking product page has a Calendar availability app block. It displays a compact appointment summary with a popout month calendar and day-specific paired half-hour slots. The shopper reviews the selection with the green check, confirms it, and then receives a temporary hold. The default booking window is this month and next month.
 - Selecting a slot passes the appointment time and private hold details with the product line item. Booking products use a booking-specific **Buy now** action that submits directly to Shopify checkout; they do not show the normal Add to cart action. Guest checkout is enabled and the owner reports that it is working.
 - The owner placed an order. Shopify created the order, and the selected slot now appears unavailable on the product page.
 - Order #1043 (Shopify ID `7249091461326`) successfully created the Google Calendar appointment for 3 November 2026, 09:00–10:00 Europe/Dublin. DynamoDB records it as `BOOKED` with an event ID, and the owner confirmed the event is visible in Google Calendar.
@@ -58,7 +58,7 @@ Source: `backend/aws-lambda/src/booking-policy.json`.
 
 - Time zone: `Europe/Dublin`.
 - General availability: Monday to Friday, 09:00–17:00, excluding Irish public holidays.
-- Minimum notice: 24 hours. Maximum lead time: 30 days. Storefront view: 28 days, one week displayed at a time.
+- Minimum notice: 24 hours. Backend maximum lead time: 366 days. Storefront booking window: configurable 1–12 calendar months (including this month) or 1–12 weeks from today; default is this month and next month.
 - Holds expire after 15 minutes; checkout grace period is 15 minutes.
 - Video chat: 60 minutes plus a 30-minute buffer.
 - Phone call: 60 minutes plus a 30-minute buffer.
@@ -93,7 +93,7 @@ Source: `backend/aws-lambda/src/booking-policy.json`.
 ### Shopify CLI app extension
 
 - App project directory: `shopify-app/lit-booking`.
-- Shopify CLI is installed and authenticated. Version `lit-booking-10` is released, including the existing calendar picker and the new Booking details Thank you extension. The Shopify app build passed.
+- Shopify CLI is installed and authenticated. Version `lit-booking-11` is released, including the existing calendar picker and the new Booking details Thank you extension. The Shopify app build passed.
 - Theme files and app extension have separate publishing paths: GitHub sync handles the theme; Shopify CLI deploy publishes the app extension.
 - From PowerShell or Git Bash, change to the app directory before running:
 
@@ -140,3 +140,11 @@ A hidden block named `assessment-thankyou` from the older integration remains hi
 ## Secrets and customer data
 
 Never commit Shopify secrets, OAuth client secrets, refresh tokens, hold tokens, or customer details. Keep AWS credential values in SSM SecureString, use redacted logs, and share only the order number or non-sensitive error text when troubleshooting.
+
+## Product picker (version lit-booking-11)
+
+The booking template places the Calendar availability app block directly below Book now in the main product information column. Book now stays visible and disabled until a hold has been confirmed. The compact card opens a floating picker, so opening/closing the calendar does not push other product content around. Dates appear on the right and the selected day's slots on the left. Hour and half-hour starts are separate buttons on the same row. The green check reviews the selected start, end, and duration in a confirmation dialog; the final Confirm appointment action creates the existing 15-minute backend hold. Change disables checkout, releases the existing hold, refreshes availability, and reopens the picker. Closing the picker before confirmation creates no reservation. Failed releases keep checkout disabled and allow another Change attempt.
+
+Theme editor: open Products > booking, then Calendar availability. Settings include booking window unit (calendar months or weeks), window length (1–12), heading, introduction, initial message, button labels, accent color, and corner radius. Two calendar months includes the current month and all of the next month. The backend policy's advance_booking_days is now 366 to support the selectable window; existing working hours, 24-hour notice, Irish holidays, service durations, buffers, and order webhook remain in effect. The backend source package was uploaded to the existing SAM artifact bucket and applied to lit-booking-dev-api; source policy is committed for future SAM builds.
+
+Verification: Shopify build/theme check passed. An isolated DOM harness passed month bounds, paired half-hour buttons, disabled checkout, review/back, confirmation hold creation, line properties, release error/retry, and slot-conflict handling. Live visual inspection follows publishing. The old hidden assessment-thankyou block remains untouched.
