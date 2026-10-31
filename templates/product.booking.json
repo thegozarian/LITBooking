@@ -1,3 +1,12 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin theme editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
 {
   "sections": {
     "main": {
@@ -11,6 +20,14 @@
           "type": "price",
           "settings": {}
         },
+        "lit_booking_calendar_availability_gWtD9t": {
+          "type": "shopify://apps/lit-booking/blocks/calendar-availability/01a191bd-ee51-75d9-9709-2bb5adb8e946",
+          "settings": {
+            "heading": "Calendar availability",
+            "description": "Choose a start date to view busy periods in the booking calendar.",
+            "prompt": "Select a date to check the next seven days."
+          }
+        },
         "description": {
           "type": "description",
           "settings": {}
@@ -21,10 +38,6 @@
             "picker_type": "button",
             "swatch_shape": "circle"
           }
-        },
-        "f196c05a-838c-4bcb-86f2-2848f2e50f3a": {
-          "type": "shopify://apps/lit-booking/blocks/calendar-availability/5caead74-b12d-c0d1-1585-1f179ca8793e3d5ad73e",
-          "settings": {}
         },
         "buy-buttons": {
           "type": "buy_buttons",
@@ -70,10 +83,10 @@
       "block_order": [
         "title",
         "price",
+        "lit_booking_calendar_availability_gWtD9t",
         "description",
-          "variant-picker",
-        "f196c05a-838c-4bcb-86f2-2848f2e50f3a",
-          "buy-buttons",
+        "variant-picker",
+        "buy-buttons",
         "collapsible-row-1",
         "collapsible-row-0",
         "collapsible-row-2",
@@ -86,13 +99,24 @@
         "constrain_to_viewport": false,
         "media_fit": "cover",
         "gallery_layout": "thumbnail_slider",
+        "mobile_thumbnails": "hide",
         "media_position": "right",
         "image_zoom": "lightbox",
-        "mobile_thumbnails": "hide",
         "hide_variants": true,
         "enable_video_looping": false,
         "padding_top": 36,
         "padding_bottom": 36
+      }
+    },
+    "disclosures": {
+      "type": "disclosures",
+      "settings": {
+        "heading": "Disclosures",
+        "heading_size": "h2",
+        "open_by_default": false,
+        "color_scheme": "",
+        "padding_top": 36,
+        "padding_bottom": 0
       }
     },
     "quick-order-list": {
@@ -113,22 +137,21 @@
         "heading_size": "h2",
         "products_to_show": 5,
         "columns_desktop": 5,
+        "columns_mobile": "2",
         "color_scheme": "scheme-1",
         "image_ratio": "adapt",
         "image_shape": "default",
         "show_secondary_image": false,
         "show_vendor": false,
         "show_rating": false,
-        "columns_mobile": "2",
         "padding_top": 36,
         "padding_bottom": 44
       }
     },
-    "disclosures": {
-      "type": "disclosures",
+    "1793451063f2dc66e9": {
+      "type": "apps",
       "settings": {
-        "padding_top": 36,
-        "padding_bottom": 0
+        "include_margins": true
       }
     }
   },
@@ -136,6 +159,7 @@
     "main",
     "disclosures",
     "quick-order-list",
-    "related-products"
+    "related-products",
+    "1793451063f2dc66e9"
   ]
 }
