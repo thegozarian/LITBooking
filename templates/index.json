@@ -64,10 +64,20 @@
     "multicolumn": {
       "type": "multicolumn",
       "blocks": {
-        "column1": {
+        "column_3GJx6r": {
           "type": "column",
           "settings": {
-            "image": "shopify://shop_images/Google_Gemini_Logo_-_Colored_-_567x128_-_zonalogo.com.png",
+            "image": "shopify://shop_images/aws.png",
+            "title": "",
+            "text": "",
+            "link_label": "",
+            "link": ""
+          }
+        },
+        "column4": {
+          "type": "column",
+          "settings": {
+            "image": "shopify://shop_images/openrouter.png",
             "title": "",
             "text": "",
             "link_label": "",
@@ -94,10 +104,10 @@
             "link": ""
           }
         },
-        "column4": {
+        "column1": {
           "type": "column",
           "settings": {
-            "image": "shopify://shop_images/openrouter.png",
+            "image": "shopify://shop_images/Google_Gemini_Logo_-_Colored_-_567x128_-_zonalogo.com.png",
             "title": "",
             "text": "",
             "link_label": "",
@@ -116,6 +126,7 @@
         },
         "column6": {
           "type": "column",
+          "disabled": true,
           "settings": {
             "image": "shopify://shop_images/figma_logo_icon_171159.png",
             "title": "",
@@ -126,10 +137,11 @@
         }
       },
       "block_order": [
-        "column1",
+        "column_3GJx6r",
+        "column4",
         "column2",
         "column3",
-        "column4",
+        "column1",
         "column5",
         "column6"
       ],
