@@ -50,6 +50,7 @@
             "choose_label": "Choose date & time",
             "change_label": "Change",
             "confirm_label": "Confirm appointment",
+            "button_pulse": true,
             "accent": "#217664",
             "corner_radius": 12
           }
@@ -58,8 +59,8 @@
           "type": "collapsible_tab",
           "settings": {
             "heading": "What to Know",
-            "icon": "star",
-            "content": "<p>Video/camera is optional. video, chat or voice chat, whichever you prefer. An engineer will discuss your requirements and advise possible solutions or ways to improve your efficiency.</p>",
+            "icon": "question_mark",
+            "content": "{{ product.metafields.custom.what_to_know | metafield_tag }}",
             "page": "product-features"
           }
         },
