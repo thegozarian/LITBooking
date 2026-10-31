@@ -135,7 +135,7 @@
         "lit_booking_calendar_availability_RFxX3y": {
           "type": "shopify://apps/lit-booking/blocks/calendar-availability/01a191bd-ee51-75d9-9709-2bb5adb8e946",
           "settings": {
-            "heading": "Book a time",
+            "heading": "Choose a date and time",
             "description": "Choose a time from the next four weeks. Unavailable times are marked.",
             "prompt": "Times are shown in Ireland time. A selected time is reserved for 15 minutes."
           }
