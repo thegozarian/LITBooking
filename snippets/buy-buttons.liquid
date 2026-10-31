@@ -48,6 +48,7 @@
 
       {%- form 'product',
         product,
+        return_to: '/checkout',
         id: product_form_id,
         class: 'form',
         novalidate: 'novalidate',
@@ -108,7 +109,15 @@
           {%- if show_dynamic_checkout -%}
             {% if is_booking_product %}
               <div data-lit-booking-checkout hidden>
-                {{ form | payment_button }}
+                <button
+                  id="ProductBookingCheckoutButton-{{ section_id }}"
+                  type="submit"
+                  name="add"
+                  class="product-form__submit button button--primary button--full-width"
+                >
+                  <span>Buy now</span>
+                  {%- render 'loading-spinner' -%}
+                </button>
               </div>
             {% else %}
               {{ form | payment_button }}
