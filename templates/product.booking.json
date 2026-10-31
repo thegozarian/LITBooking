@@ -119,17 +119,6 @@
         "padding_bottom": 0
       }
     },
-    "quick-order-list": {
-      "type": "quick-order-list",
-      "settings": {
-        "variants_per_page": 50,
-        "show_image": true,
-        "show_sku": true,
-        "color_scheme": "scheme-2",
-        "padding_top": 36,
-        "padding_bottom": 16
-      }
-    },
     "related-products": {
       "type": "related-products",
       "settings": {
@@ -158,7 +147,6 @@
   "order": [
     "main",
     "disclosures",
-    "quick-order-list",
     "related-products",
     "1793451063f2dc66e9"
   ]
