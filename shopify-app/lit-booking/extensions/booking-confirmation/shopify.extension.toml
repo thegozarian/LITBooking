@@ -10,3 +10,7 @@ type = "ui_extension"
 module = "./src/ThankYou.jsx"
 target = "purchase.thank-you.block.render"
 default_placement = "ORDER_STATUS1"
+
+[[extensions.targeting]]
+module = "./src/OrderStatus.jsx"
+target = "customer-account.order-status.block.render"

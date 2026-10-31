@@ -154,10 +154,15 @@
         const expiry = Number(form.dataset.litBookingHoldExpiry || 0);
         if (!token?.value || expiry <= Date.now()) {
           event.preventDefault();
+          event.stopImmediatePropagation();
           status.textContent = "Choose and hold an available time before continuing to checkout.";
           block.scrollIntoView({ behavior: "smooth", block: "center" });
+          return;
         }
-      });
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        form.submit();
+      }, { capture: true });
     }
 
     const today = localDateValue(new Date());
@@ -193,6 +198,10 @@
 
       form.dataset.litBookingHoldExpiry = String(new Date(state.expires_at).getTime());
       setLineProperty(form, "Booking start", formatPeriod(state.start));
+      if (state.end) {
+        setLineProperty(form, "Booking end", formatPeriod(state.end));
+        setLineProperty(form, "Booking duration", `${Math.round((new Date(state.end) - new Date(state.start)) / 60000)} minutes`);
+      }
       setLineProperty(form, "_Booking type", state.booking_type);
       setLineProperty(form, "_Booking hold id", state.hold_id);
       setLineProperty(form, "_Booking hold token", state.hold_token);
@@ -265,7 +274,7 @@
           },
           "POST",
         );
-        saveHold({ ...hold, start: slot.start, request_id: requestId }, slotButton);
+        saveHold({ ...hold, start: slot.start, end: slot.end, request_id: requestId }, slotButton);
       } catch (error) {
         status.textContent = error.status === 409
           ? "That time was just taken. Refresh the week to see the latest availability."
@@ -384,7 +393,7 @@
             "POST",
           )
             .then((hold) => {
-              saveHold({ ...hold, start: current.start, request_id: current.request_id });
+              saveHold({ ...hold, start: current.start, end: current.end, request_id: current.request_id });
             })
             .catch(() => {
               clearHold();
