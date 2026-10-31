@@ -20,14 +20,6 @@
           "type": "price",
           "settings": {}
         },
-        "lit_booking_calendar_availability_gWtD9t": {
-          "type": "shopify://apps/lit-booking/blocks/calendar-availability/01a191bd-ee51-75d9-9709-2bb5adb8e946",
-          "settings": {
-            "heading": "Calendar availability",
-            "description": "Choose a start date to view busy periods in the booking calendar.",
-            "prompt": "Select a date to check the next seven days."
-          }
-        },
         "description": {
           "type": "description",
           "settings": {}
@@ -37,13 +29,6 @@
           "settings": {
             "picker_type": "button",
             "swatch_shape": "circle"
-          }
-        },
-        "buy-buttons": {
-          "type": "buy_buttons",
-          "settings": {
-            "show_dynamic_checkout": false,
-            "show_gift_card_recipient": false
           }
         },
         "collapsible-row-1": {
@@ -78,19 +63,25 @@
           "settings": {
             "share_label": "Share"
           }
+        },
+        "buy-buttons": {
+          "type": "buy_buttons",
+          "settings": {
+            "show_dynamic_checkout": false,
+            "show_gift_card_recipient": false
+          }
         }
       },
       "block_order": [
         "title",
         "price",
-        "lit_booking_calendar_availability_gWtD9t",
         "description",
         "variant-picker",
-        "buy-buttons",
         "collapsible-row-1",
         "collapsible-row-0",
         "collapsible-row-2",
-        "share"
+        "share",
+        "buy-buttons"
       ],
       "settings": {
         "enable_sticky_info": true,
@@ -121,6 +112,7 @@
     },
     "related-products": {
       "type": "related-products",
+      "disabled": true,
       "settings": {
         "heading": "Other industry favorites",
         "heading_size": "h2",
@@ -139,6 +131,19 @@
     },
     "1793451063f2dc66e9": {
       "type": "apps",
+      "blocks": {
+        "lit_booking_calendar_availability_RFxX3y": {
+          "type": "shopify://apps/lit-booking/blocks/calendar-availability/01a191bd-ee51-75d9-9709-2bb5adb8e946",
+          "settings": {
+            "heading": "Book a time",
+            "description": "Choose a time from the next four weeks. Unavailable times are marked.",
+            "prompt": "Times are shown in Ireland time. A selected time is reserved for 15 minutes."
+          }
+        }
+      },
+      "block_order": [
+        "lit_booking_calendar_availability_RFxX3y"
+      ],
       "settings": {
         "include_margins": true
       }
