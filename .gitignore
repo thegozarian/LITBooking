@@ -6,4 +6,15 @@
 !.env.example
 **/node_modules/
 **/.shopify/
+**/__pycache__/
+*.py[cod]
+.aws-sam/
+shopify-app/lit-booking/.graphqlrc.js
+shopify-app/lit-booking/CHANGELOG.md
+shopify-app/lit-booking/CLAUDE.md
+shopify-app/lit-booking/SECURITY.md
+shopify-app/lit-booking/extensions/app-home/
+shopify-app/lit-booking/extensions/app-tools/
+shopify-app/lit-booking/shared/
+shopify-app/lit-booking/vite.config.ts
 work/

@@ -1,0 +1,106 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: LIT Booking Shopify App Proxy backend and booking state store.
+
+Metadata:
+  AWSToolsMetrics:
+    AWSAgentToolkit: aws-cloudformation@2
+  com.aws.cloudformation.Context:
+    arch: Shopify App Proxy -> Lambda Function URL -> DynamoDB; Lambda reads Shopify secret from SSM SecureString at runtime
+    must:
+      - Keep Shopify secret value out of CloudFormation parameters and template
+      - Keep App Proxy signature and timestamp validation in Lambda
+    ref:
+      - at: backend/aws-lambda/README.md
+        has: deployment and secret setup guidance
+        scope: companion
+
+Parameters:
+  ShopifyAppSecretParameterName:
+    Type: String
+    Default: /lit-booking/dev/shopify-app-secret
+    MinLength: 2
+    AllowedPattern: '^/[A-Za-z0-9_./-]+$'
+    Description: Name of the SSM SecureString containing the Shopify app client secret.
+  GoogleCalendarOAuthParameterName:
+    Type: String
+    Default: /lit-booking/dev/google-calendar-oauth
+    MinLength: 2
+    AllowedPattern: '^/[A-Za-z0-9_./-]+$'
+    Description: Name of the SSM SecureString containing Google OAuth client credentials and refresh token.
+  GoogleCalendarId:
+    Type: String
+    Default: primary
+    Description: Google Calendar ID used for availability and booking events.
+
+Resources:
+  BookingTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !Sub '${AWS::StackName}-bookings'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      TimeToLiveSpecification:
+        AttributeName: expiresAt
+        Enabled: true
+
+  BookingApi:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-api'
+      CodeUri: src/
+      Handler: handler.lambda_handler
+      Runtime: python3.14
+      Architectures:
+        - arm64
+      MemorySize: 256
+      Timeout: 20
+      Environment:
+        Variables:
+          SHOPIFY_APP_SECRET_PARAMETER: !Ref ShopifyAppSecretParameterName
+          GOOGLE_CALENDAR_OAUTH_PARAMETER: !Ref GoogleCalendarOAuthParameterName
+          GOOGLE_CALENDAR_ID: !Ref GoogleCalendarId
+          BOOKINGS_TABLE: !Ref BookingTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref BookingTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ssm:GetParameter
+              Resource:
+                - !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${ShopifyAppSecretParameterName}'
+                - !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${GoogleCalendarOAuthParameterName}'
+            - Effect: Allow
+              Action:
+                - kms:Decrypt
+              Resource: !Sub 'arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key/*'
+              Condition:
+                StringEquals:
+                  kms:ViaService: !Sub 'ssm.${AWS::Region}.amazonaws.com'
+            - Effect: Allow
+              Action:
+                - dynamodb:TransactWriteItems
+              Resource: !GetAtt BookingTable.Arn
+      FunctionUrlConfig:
+        AuthType: NONE
+        InvokeMode: BUFFERED
+
+Outputs:
+  AppProxyUrl:
+    Description: HTTPS endpoint to configure as the Shopify App Proxy URL after deployment.
+    Value: !GetAtt BookingApiUrl.FunctionUrl
+  BookingTableName:
+    Description: DynamoDB table for booking state.
+    Value: !Ref BookingTable

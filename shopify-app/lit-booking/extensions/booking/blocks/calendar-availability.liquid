@@ -1,0 +1,56 @@
+<div
+  class="lit-booking-availability"
+  data-lit-booking-availability
+  data-booking-type="{{ product.metafields.custom.booking_type.value | default: '' | escape }}"
+  data-product-id="{{ product.id }}"
+  {{ block.shopify_attributes }}
+>
+  <h2 class="lit-booking-availability__heading">{{ block.settings.heading | escape }}</h2>
+  {% if block.settings.description != blank %}
+    <p class="lit-booking-availability__description">{{ block.settings.description | escape }}</p>
+  {% endif %}
+
+  <div class="lit-booking-availability__week-controls" aria-label="Booking weeks">
+    <button type="button" data-lit-booking-previous aria-label="Show previous week">Previous week</button>
+    <p class="lit-booking-availability__week-label" data-lit-booking-week-label aria-live="polite"></p>
+    <button type="button" data-lit-booking-next aria-label="Show next week">Next week</button>
+  </div>
+
+  {% if block.settings.prompt != blank %}
+    <p class="lit-booking-availability__prompt">{{ block.settings.prompt | escape }}</p>
+  {% endif %}
+  <p class="lit-booking-availability__status" data-lit-booking-status role="status" aria-live="polite"></p>
+  <div class="lit-booking-availability__week" data-lit-booking-week></div>
+</div>
+
+{% schema %}
+{
+  "name": "Calendar availability",
+  "target": "content",
+  "javascript": "availability.js",
+  "stylesheet": "availability.css",
+  "enabled_on": {
+    "templates": ["product"]
+  },
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Choose a date and time"
+    },
+    {
+      "type": "text",
+      "id": "description",
+      "label": "Description",
+      "default": "Choose a time from the next four weeks. Unavailable times are marked."
+    },
+    {
+      "type": "text",
+      "id": "prompt",
+      "label": "Initial message",
+      "default": "Times are shown in Ireland time. Choose an available time to reserve it for checkout."
+    }
+  ]
+}
+{% endschema %}
