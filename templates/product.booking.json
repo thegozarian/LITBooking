@@ -43,7 +43,7 @@
           "settings": {
             "heading": "Select chat day and time by clicking below:",
             "description": "Choose a date, then an available time.",
-            "prompt": "Times are shown in Dublin time. Confirm your selection to reserve it for 15 minutes.",
+            "prompt": "Times are shown in Dublin/GMT time. Confirm your selection to reserve it for 15 minutes.",
             "horizon_unit": "months",
             "horizon_count": 2,
             "book_label": "Book now",
