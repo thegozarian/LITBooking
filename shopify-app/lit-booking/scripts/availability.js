@@ -124,14 +124,21 @@
   function initAvailabilityBlock(block) {
     if (block.dataset.initialized === "true") return;
     block.dataset.initialized = "true";
-    const find = (name) => block.querySelector(`[data-booking-${name}]`);
+    const portal = document.createElement("div");
+    portal.className = "lit-booking lit-booking--portal";
+    portal.style.cssText = block.style.cssText;
+    const find = (name) => block.querySelector(`[data-booking-${name}]`) || portal.querySelector(`[data-booking-${name}]`);
     const panel = find("panel"), grid = find("days"), slots = find("slots");
     const monthLabel = find("month"), dayLabel = find("day"), status = find("status");
     const previous = find("previous"), next = find("next"), check = find("check");
     const openButton = find("open"), summary = find("summary"), dialog = find("confirm");
     const confirmButton = find("confirm-button"), confirmText = find("confirm-text");
+    document.body.append(portal);
+    portal.append(panel);
+    document.addEventListener("shopify:section:unload", (event) => { if (event.target.contains(block)) { portal.remove(); clearTimeout(expiryTimer); } });
     const form = productFormFor(block), checkout = form?.querySelector("[data-lit-booking-checkout]");
     const buyButton = checkout?.querySelector('button[type="submit"]');
+    buyButton?.removeAttribute("aria-disabled");
     const bookingType = block.dataset.bookingType;
     const storageKey = `lit-booking-hold:${block.dataset.productId}`;
     const today = localDateValue(new Date());
@@ -152,7 +159,7 @@
     if (buyButton) buyButton.querySelector("span").textContent = block.dataset.bookLabel || "Book now";
 
     function enableCheckout(enabled) {
-      if (buyButton) { buyButton.disabled = !enabled; buyButton.setAttribute("aria-disabled", String(!enabled)); }
+      if (buyButton) buyButton.disabled = !enabled;
     }
     function updateControls() {
       previous.disabled = busy || shownMonth <= monthStart(today);
@@ -172,7 +179,7 @@
       sessionStorage.removeItem(storageKey);
       clearLineProperties(form);
       if (form) delete form.dataset.litBookingHoldExpiry;
-      summary.textContent = block.dataset.emptyLabel || "Choose a date and time for your appointment.";
+      summary.textContent = "Choose a date and time.";
       openButton.textContent = block.dataset.chooseLabel || "Choose date & time";
       enableCheckout(false);
     }
@@ -194,11 +201,11 @@
       openButton.textContent = block.dataset.changeLabel || "Change";
       enableCheckout(true);
       panel.hidden = true;
-      status.textContent = `Reserved until ${formatTime(value.expires_at)}. Continue to checkout before then. Ireland time.`;
+      status.textContent = `Held until ${formatTime(value.expires_at)}. Ireland time.`;
       clearTimeout(expiryTimer);
       expiryTimer = setTimeout(() => {
         clearHold(); cache.clear(); draft = null;
-        status.textContent = "Your reservation expired. Please choose a time again.";
+        status.textContent = "Reservation expired. Choose a time.";
       }, Math.max(0, new Date(value.expires_at).getTime() - Date.now()));
     }
     async function releaseHold() {
@@ -234,7 +241,7 @@
       dayLabel.textContent = formatDay(selectedDay, {weekday:"short", day:"numeric", month:"short"});
       if (!daySlots.length) {
         const empty = document.createElement("p"); empty.className = "lit-booking__empty";
-        empty.textContent = "No appointments available on this day. Choose another date.";
+        empty.textContent = "No times available. Choose another date.";
         slots.append(empty); return;
       }
       let currentHour = "", row;
@@ -251,7 +258,7 @@
         button.addEventListener("click", () => {
           if (busy) return;
           draft = slot; retryRequest = null; renderSlots(daySlots); updateControls();
-          status.textContent = `${selectionText(slot)}. Use the green check to review your selection.`;
+          status.textContent = "Use the green check to review this time.";
         });
         row.append(button);
       }
@@ -272,24 +279,24 @@
         }
         if (version !== requestVersion) return;
         renderSlots(daySlots);
-        status.textContent = "Select a time, then use the green check. Times are shown in Ireland time.";
+        status.textContent = "Select a time, then ✓. Ireland time.";
       } catch (_) {
         if (version !== requestVersion) return;
         slots.textContent = "Times could not be loaded.";
-        status.textContent = "Please choose the date again to retry.";
+        status.textContent = "Select the date to retry.";
       } finally { if (version === requestVersion) setBusy(false); }
     }
     function positionPanel() {
-      panel.style.removeProperty("--booking-offset");
       const rect = panel.getBoundingClientRect();
-      const offset = Math.max(12 - rect.left, Math.min(0, window.innerWidth - 12 - rect.right));
-      panel.style.setProperty("--booking-offset", `${offset}px`);
+      const anchor = block.getBoundingClientRect();
+      panel.style.setProperty("--booking-left", `${Math.max(12, Math.min(anchor.right - rect.width, window.innerWidth - rect.width - 12))}px`);
+      panel.style.setProperty("--booking-top", `${Math.max(12, Math.min(anchor.bottom + 8, window.innerHeight - rect.height - 12))}px`);
     }
     async function openPicker() {
       if (busy) return;
       enableCheckout(false); setBusy(true);
       try { await releaseHold(); }
-      catch (_) { status.textContent = "Your previous reservation could not be released. Please try Change again."; setBusy(false); return; }
+      catch (_) { status.textContent = "Could not release. Try Change again."; setBusy(false); return; }
       setBusy(false); cache.clear(); panel.hidden = false; draft = null;
       renderMonth(); positionPanel(); await loadDay();
       find("close").focus();
@@ -320,8 +327,8 @@
         dialog.close(); openButton.focus();
       } catch (error) {
         dialog.close(); cache.delete(selectedDay);
-        const message = error.status === 409 ? "That time was just taken. Please choose another." : "We could not confirm this time. Please try again.";
-        await loadDay(); status.textContent = message;
+        const message = error.status === 409 ? "Time just taken. Choose another." : "Could not reserve this time. Try again.";
+        if (error.status === 409) await loadDay(); status.textContent = message;
       } finally { confirmButton.textContent = block.dataset.confirmLabel || "Confirm appointment"; setBusy(false); }
     });
     if (form) {
@@ -329,7 +336,7 @@
       form.litBookingSubmitGuard = (event) => {
         event.preventDefault(); event.stopImmediatePropagation();
         if (!held || new Date(held.expires_at).getTime() <= Date.now() || buyButton?.disabled) {
-          enableCheckout(false); status.textContent = "Choose and confirm a date and time before booking."; return;
+          enableCheckout(false); status.textContent = "Confirm a date and time before booking."; return;
         }
         form.submit();
       };
@@ -338,7 +345,7 @@
     clearLineProperties(form); enableCheckout(false);
     if (!bookingType || !form) {
       openButton.disabled = true;
-      status.textContent = !bookingType ? "Set this product’s custom.booking_type metafield to enable booking." : "The booking product form was not found.";
+      status.textContent = !bookingType ? "Set custom.booking_type to enable booking." : "Booking form not found.";
       return;
     }
     const saved = sessionStorage.getItem(storageKey);
@@ -349,7 +356,7 @@
           setBusy(true);
           proxyRequest({action:"hold", booking_type:bookingType, start:current.start, request_id:current.request_id}, "POST")
             .then((value) => saveHold({...current,...value}))
-            .catch(() => { clearHold(); status.textContent = "Your previous reservation is no longer available. Please choose again."; })
+            .catch(() => { clearHold(); status.textContent = "Reservation expired. Please choose again."; })
             .finally(() => setBusy(false));
         } else clearHold();
       } catch (_) { clearHold(); }
